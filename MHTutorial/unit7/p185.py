@@ -17,6 +17,13 @@ data = sc.fit_transform(data)  # 归一化
 data = data.reshape(-1, vec_dim)  # torch.Size([12, 12])
 train_x, train_y = [], []
 
+for i in range(data.shape[0] - seq_len):
+    tmp_x = data[i:i + seq_len, :]
+    tmp_y = data[i + seq_len, :]
+
+    train_x.append(tmp_x)
+    train_y.append(tmp_y)
+
 train_x = torch.FloatTensor(train_x)  # torch.Size([8, 4, 12]) torch.Size([8, 12])
 train_y = torch.FloatTensor(train_y)
 
@@ -32,8 +39,8 @@ class Air_Model(nn.Module):
 
     def forward(self, x):  # torch.Size([1, 4, 12])
         _, (h_out, _) = self.lstm(x)  # h_out是序列最后一个元素的hidden state
-        h_out = h_out.view(x.shape[0],
-                           -1)  # h_out's shape torch.Size([1, 10]) = (n_layer * n_direction, batchsize * hidden_dim), i.e. (1, 10)
+        # h_out's shape torch.Size([1, 10]) = (n_layer * n_direction, batchSize, hidden_dim), i.e. (1, 1, 10)
+        h_out = h_out.view(x.shape[0], -1)
         o = self.linear(h_out)
         return o
 
@@ -43,7 +50,7 @@ optimizer = torch.optim.Adam(air_Model.parameters(), lr=0.01)
 
 for ep in range(400):
     for i, (x, y) in enumerate(zip(train_x, train_y)):
-        x = x.unsqueeze(0)  # 加上批   torch.Size([1, 4, 12])
+        x = x.unsqueeze(0)  # 加上维度   torch.Size([1, 4, 12])
         pre_y = air_Model(x)  # torch.Size([1, 12])
         pre_y = torch.squeeze(pre_y)  # torch.Size([12])
         loss = torch.nn.MSELoss()(pre_y, y)
