@@ -4,7 +4,6 @@ from torch.nn import CrossEntropyLoss
 from torch.utils.data import TensorDataset, DataLoader, WeightedRandomSampler
 import torch.nn as nn
 
-from MHTutorial.unit2.p49 import optimizer
 
 sentences = ['明天去看展览', '今天加班，天气不好', '明天有图书展览', '明天去']
 
@@ -73,6 +72,7 @@ class Model(nn.Module):
 
 lstm_model = Model()
 optimizer = torch.optim.Adam(lstm_model.parameters(), lr=0.001)
+dataloader = []
 for epoch in range(100):
     for i, (batch_texts, batch_labels) in enumerate(dataloader):
         outputs = lstm_model(batch_texts)
