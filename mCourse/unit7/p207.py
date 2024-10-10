@@ -112,7 +112,7 @@ weights = 1. / torch.FloatTensor(weights)
 sampler = WeightedRandomSampler(weights=weights, replacement=True, num_samples=len(labels) * 1000)  # 解决类不平衡问题
 
 dataset = TensorDataset(texts, labels) # texts.shape = [34,10], labels.shape: [34]
-dataloader = DataLoader(dataset=dataset, batch_size=128, sampler=sampler, shuffle=False)
+dataloader = DataLoader(dataset=dataset, batch_size=8, sampler=sampler, shuffle=False)
 
 novel_model = Novel_Model(vocab_size=len(vocab_word2index)).to(device) # vocab_word2index.size = 20
 optimizer = torch.optim.Adam(novel_model.parameters(), lr=0.01)
@@ -125,6 +125,8 @@ for ep in range(5):
         # print(batch_texts.shape,batch_out.shape)
         # exit(0)
         # torch.Size([128, 10]) torch.Size([128])
+        # batch_out.size = [8, 20]表示8个批次，每个批次包括20个类别
+        # batch_labels.size = [8],比如为[0,6,11,14,14,19,0,13],分别代表8个批次的分类结果分别第0类，第6类，第11类，...，第13类
         loss = nn.CrossEntropyLoss()(batch_out, batch_labels)
 
         optimizer.zero_grad()
