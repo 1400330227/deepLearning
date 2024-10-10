@@ -1,8 +1,8 @@
-/MHTutorial/data/
+/mCourse/data/
 /.venv/
 /.idea/
-/MHTutorial/unit6/siameseNet
-/MHTutorial/unit7/air_Model
-/MHTutorial/unit7/novel_model
-/MHTutorial/unit7/vocab_index2word
-/MHTutorial/unit7/vocab_word2index
+/mCourse/unit6/siameseNet
+/mCourse/unit7/air_Model
+/mCourse/unit7/novel_model
+/mCourse/unit7/vocab_index2word
+/mCourse/unit7/vocab_word2index
