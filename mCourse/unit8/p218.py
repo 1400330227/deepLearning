@@ -19,20 +19,20 @@ for line in lines:
     if len(pair) != 2:
         continue
     en_sen = pair[0]  # 英文句子
-    zh_sen = pair[1]  # 英文句子
+    zh_sen = pair[1]  # 中文句子
     pairs.append([en_sen, zh_sen])
-pairs = pairs[:50]  # 为了节省调试时间，只用50对英中文句子来训练
+pairs = pairs[:5]  # 为了节省调试时间，只用50对英中文句子来训练
 
 
 class Lang_Dict:
     def __init__(self, name):
-        self.name = name # 指翻译中文还是英文
+        self.name = name  # 指翻译中文还是英文
         self.word2index = {"<PAD>": 0, "<UNK>": 1, "<SOS>": 2, "<EOS>": 3}
         self.index2word = {0: "<PAD>", 1: "<UNK>", 2: "<SOS>", 3: "<EOS>"}
         self.word_num = 4  # 字典现有单词数  PAD  UNK  SOS  EOS  填充 未知  开始  结束
 
     def addSentence(self, sentence):
-        if sentence.name == 'en':
+        if self.name == 'en':
             for word in sentence.split(' '):  # 英文的话 用split(' ')分词
                 self.addWord(word)
         elif self.name == 'zh':
@@ -40,11 +40,12 @@ class Lang_Dict:
             for word in split_zh:
                 self.addWord(word)
 
-    def addWord(self, word): # 将词加入到字典中
+    def addWord(self, word):  # 将词加入到字典中
         if word not in self.word2index:
             self.word2index[word] = self.word_num
             self.index2word[self.word_num] = word
             self.word_num += 1
+
 
 def prepareData(pairs):
     temp = []
@@ -66,6 +67,7 @@ def prepareData(pairs):
 # en_lang=构造好的英文字典   zh_lang=构造好的中文字典   pairs=符合长度的句子对
 en_lang, zh_lang, pairs = prepareData(pairs)
 
+
 # len(pairs)=32,格式没有彼变
 
 # 将句子转为张量  sentence=输入句子，lang=构造好的字典（英文或者中文），flag表示句子作为解码端输入还是输出处理
@@ -79,7 +81,6 @@ def sentence2tensor(lang, sentence):
         indexes.append(lang.word2index.get(word, 1))  # 1为未知单词'<UNK>'的编号
     indexes.append(lang.word2index['<EOS>'])  # 最后需要append结束标志位 EOS
     return torch.tensor(indexes, dtype=torch.long, device=device).view(-1, 1)
-    # 一个句子一个张量??
 
 
 class MyDataSet(Dataset):
@@ -108,14 +109,15 @@ class Encoder(nn.Module):
         self.embedding = nn.Embedding(en_vocab_num, embedding_dim=hidden_size)
         self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, batch_first=True)
 
-    def forward(self, x):
-        x = self.embedding(x) # x.shape = [x.shape[0],xshape[1], hidden_size]
-        x = x.reshape(1, 1, -1) # x.shape = [1, 1, x.shape[0]*xshape[1]*hidden_size]
-        o, h, = self.gru(x)
+    def forward(self, x, h):
+        x = self.embedding(x)  # x.shape = [x.shape[0],xshape[1], hidden_size]
+        x = x.reshape(1, 1, -1)  # x.shape = [1, 1, x.shape[0]*xshape[1]*hidden_size]
+        o, h, = self.gru(x, h)
         return o, h,
 
+
 class Decoder(nn.Module):
-    def __init__(self, hidden_size,de_vocab_num):
+    def __init__(self, hidden_size, de_vocab_num):
         super(Decoder, self).__init__()
         self.hidden_size = hidden_size
         self.embedding = nn.Embedding(de_vocab_num, embedding_dim=hidden_size)
@@ -131,7 +133,9 @@ class Decoder(nn.Module):
         o = self.feature1(o)
         return o, h
 
+
 hidden_size = 256  # 隐含层
+
 
 def init_hidden():  # 用于初始化隐含层
     return torch.zeros(1, 1, hidden_size).to(device)
@@ -142,7 +146,6 @@ decoder = Decoder(hidden_size, zh_lang.word_num).to(device)
 
 en_optimizer = optim.SGD(encoder.parameters(), lr=0.01)
 de_optimizer = optim.SGD(decoder.parameters(), lr=0.01)
-
 
 for ep in range(150):
     # 每次处理一对句子
@@ -160,22 +163,20 @@ for ep in range(150):
             # torch.Size([1]) torch.Size([1, 1, 256])--> torch.Size([1, 1, 256]) torch.Size([1, 1, 256])
             en_outputs[ei] = en_output[0, 0]  # 保存词x[ei]的向量
 
-        de_hidden = torch.mean(en_outputs, dim=0).reshape(1, 1, -1) #用各计算单元输出的平均值作为语义向量
-        de_input = torch.tensor(2).to(device)  #  2为起始标识符<SOS>的编号
+        de_hidden = torch.mean(en_outputs, dim=0).reshape(1, 1, -1)  # 用各计算单元输出的平均值作为语义向量
+        de_input = torch.tensor(2).to(device)  # 2为起始标识符<SOS>的编号
         # 解码器的隐含层初始化为 编码器最后一个计算单元的隐含层输出（1，1，256）
-        #de_hidden = en_hidden  # torch.Size([1, 1, 256])
+        # de_hidden = en_hidden  # torch.Size([1, 1, 256])
         loss = 0
         for di in range(label_len):  # 目标中文的词语 一个一个来
             # torch.Size([1, 1]) torch.Size([1, 1, 256]) ---> torch.Size([1, 334]) torch.Size([1, 1, 256])
             # 334为中文的不同词汇数量
             #                torch.Size([]) torch.Size([1, 1, 256]) torch.Size([5, 256])
-            de_output, de_hidden = decoder(de_input, de_hidden) #, en_outputs
-
+            de_output, de_hidden = decoder(de_input, de_hidden)  # , en_outputs
 
             _, max_i = de_output.topk(1)  # 取最高概率的词语的字典索引张量torch.Size([1, 1]) torch.Size([1, 1])
-            #de_input = max_i.squeeze().detach()  # 作为下一个中文词的输入 202
+            # de_input = max_i.squeeze().detach()  # 作为下一个中文词的输入 202
             de_input = label[di].squeeze().detach()
-
 
             loss += nn.CrossEntropyLoss()(de_output, label[di])
 
