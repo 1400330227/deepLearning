@@ -21,7 +21,7 @@ for line in lines:
     en_sen = pair[0]  # 英文句子
     zh_sen = pair[1]  # 中文句子
     pairs.append([en_sen, zh_sen])
-pairs = pairs[:5]  # 为了节省调试时间，只用50对英中文句子来训练
+pairs = pairs[:50]  # 为了节省调试时间，只用50对英中文句子来训练
 
 
 class Lang_Dict:
@@ -195,3 +195,44 @@ for ep in range(150):
 
 torch.save(encoder, 'encoder2')
 torch.save(decoder, 'decoder2')
+
+
+encoder = torch.load('encoder2')
+decoder = torch.load('decoder2')
+
+en_sentence = mydataset.pairs[20][0]
+en_sentence = "But before this new order appears, the world may be faced with spreading disorder if not outright chaos."
+en_sentence = en_sentence.lower()
+en_tensor = sentence2tensor(en_lang, en_sentence)
+encoder.eval()
+decoder.eval()
+with torch.no_grad():
+    input_len = en_tensor.size(0)  # 单词长度
+    en_hidden = init_hidden()  # 初始化隐含层
+    max_len = MAX_LENGTH
+    en_outputs = torch.zeros(MAX_LENGTH, hidden_size).to(device)  # 预设编码器输出[max_length,hidden_size]
+    for ei in range(input_len):
+        en_output, en_hidden = encoder(en_tensor[ei], en_hidden)  ##编码器RNN网络输入 第ei个分词在字典里的序号的张量
+        en_outputs[ei] += en_output[0, 0]  # torch.Size([1, 1, 256])-->torch.Size([256])
+    de_x = torch.tensor(2).to(device)  #2为<SOS>的编号
+    de_hidden = en_hidden
+    zh_words = []
+    for di in range(max_len):
+        # torch.Size([1, 334]) torch.Size([1, 1, 256])
+        de_output, de_hidden = decoder(de_x, de_hidden)
+        #de_output, de_hidden = decoder(de_input, de_hidden, en_outputs) MAX_LENGTH
+        _, max_i = de_output.data.topk(1)  # 最大概率值 以及对应的字典索引号
+
+        if max_i.item() == 3: #3为<EOS>的编号
+            # zh_words.append('<EOS>')
+            break
+        zh_words.append(zh_lang.index2word[max_i.item()])
+        de_x = max_i.squeeze().detach()
+zh_sentence = ' '.join(zh_words)
+print(en_sentence)
+print(zh_sentence)
+
+print('------------------000')
+exit(0)
+
+print(output_sentence)

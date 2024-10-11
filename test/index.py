@@ -33,7 +33,7 @@ import torch
 import torch
 from torch import nn
 
-rnn = nn.GRU(10, 20, 2, bidirectional=True)
+rnn = nn.GRU(10, 20, 2, bidirectional=False)
 input = torch.randn(5, 3, 10)
 output, hn = rnn(input)
 
