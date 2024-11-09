@@ -1,10 +1,5 @@
 /mCourse/data/
 /.venv/
 /.idea/
-/mCourse/unit6/siameseNet
-/mCourse/unit7/air_Model
-/mCourse/unit7/novel_model
-/mCourse/unit7/vocab_index2word
-/mCourse/unit7/vocab_word2index
-/mCourse/unit8/decoder2
-/mCourse/unit8/encoder2
+
+*.pt
