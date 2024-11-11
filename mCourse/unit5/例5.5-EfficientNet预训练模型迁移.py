@@ -147,6 +147,7 @@ def getAccOnadataset(data_loader):
 
     with torch.no_grad():
         for i, (x, y) in enumerate(data_loader):
+            x, y = x.to(device), y.to(device)
             pre_y = net(x)
             pre_y = torch.argmax(pre_y, dim=1)
             t = (pre_y == y).long().sum()
